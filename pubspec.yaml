@@ -1,0 +1,7 @@
+name: parallel
+author: Nane Kratzke <nane@nkode.io>
+version: 0.0.1
+homepage: http://www.nkode.io
+description: Library to provide parallel executable iterables
+dependencies:
+  worker: '>=0.3.7'
