@@ -12,23 +12,19 @@ PIterable parallel(Iterable collection) => new PIterable(
     new Future.value(collection)
 );
 
-class _PassableFunction extends Task {
-  var _f;
-  dynamic _v;
-  _PassableFunction(this._f, this._v);
-  dynamic execute() => _f(_v);
+class _MessageableFunction extends Task {
+  final f;
+  final x;
+  _MessageableFunction(this.f, this.x);
+  dynamic execute() => f(x);
 }
 
 /**
  * A parallel Iterable object wraps a classical [Iterable].
  * All methods applicable to [Iterable] can be also applied
  * to [PIterable].
- * Nevertheless the
- *
- * - [#map], and
- * - [#forEach]
- *
- * method are executed parallel. All methods return Futures on
+ * Nevertheless the [#map]method are executed parallel.
+ * All methods return Futures on
  * return values known from [Iterable].
  */
 class PIterable implements Iterable {
@@ -37,91 +33,36 @@ class PIterable implements Iterable {
   final Future<Iterable> _futureIterable;
 
   /**
-   * Requested isolates for parallel processings.
-   */
-  static var _isolates;
-
-  /**
-   * Closes all requested isolates.
-   */
-  static void close() {
-    PIterable._isolates.close();
-    _isolates = null;
-  }
-
-  /**
    * Constructor to create a collection providing
    * parallelizable operations on lists.
    */
-  PIterable(this._futureIterable) {
-    if (PIterable._isolates == null) {
-      PIterable._isolates = new Worker();
-    }
-  }
+  PIterable(this._futureIterable);
 
   /**
-   * Parallel executed forEach.
-   */
-  void forEach(Function f) {
-    _futureIterable.then((iterable) {
-      for (var entry in iterable) {
-        final t = new _PassableFunction(f, entry);
-        _isolates.handle(t);
-      }
-    });
-  }
-
-  /**
-   * Parallel executed map.
+   * Parallel map. [f] has to be a wannabe function.
    */
   PIterable map(Function f) {
-    Completer<Iterable> c = new Completer<Iterable>();
-    final calculations = [];
+    final worker = new Worker();
+    final c = new Completer<Iterable>();
+    final computations = [];
     this._futureIterable.then((iterable) {
       for (var entry in iterable) {
-        final t = new _PassableFunction(f, entry);
-        calculations.add(_isolates.handle(t));
+        final t = new _MessageableFunction(f, entry);
+        computations.add(worker.handle(t));
       }
-
-      Future.wait(calculations).then((results) {
+      Future.wait(computations).then((results) {
+        worker.close();
         c.complete(results);
       });
     });
     return new PIterable(c.future);
   }
 
-  /*
-   * The following methods are all to be done.
-   *
-  PIterable expand(Function f) {
-
-  }
-
-  PIterable skip(int n) {
-
-  }
-
-  PIterable skipWhile(Function test) {
-
-  }
-
-  PIterable take(int n) {
-
-  }
-
-  PIterable takeWhile(Function test) {
-
-  }
-
-  PIterable where(Function test) {
-
-  }*/
-
   /**
    * Applies a function [f] to a completed result.
    */
   PIterable inspect(void f(dynamic)) {
-    Completer<Iterable> c = new Completer<Iterable>();
+    final c = new Completer<Iterable>();
     this._futureIterable.then((completed) {
       f(completed);
       c.complete(completed);
@@ -135,7 +76,7 @@ class PIterable implements Iterable {
    * the wrapped [Iterable].
    */
   dynamic noSuchMethod(Invocation msg) {
-    Completer c = new Completer();
+    final c = new Completer();
     this._futureIterable.then((completed) {
       final result = reflect(completed).delegate(msg);
       c.complete(result);

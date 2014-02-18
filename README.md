@@ -7,40 +7,38 @@ Dart programs run in a single isolate by default. Although Dart provides
 several asynchronous programming techniques like Futures and Streams Dart
 does not use capacities of modern multicore processors by default.
 
-This is a language design decision mainly due to problematic controllability of 
-concurrency aspects (thread safeness) in programming.
+This package provides a parallel map function
+for easy parallelization. Let us assume you want to
+execute computational intensive tasks in parallel.
 
-Let us assume we want to calculate several times the fibonacci number of 40 
-by applying the following function
+For example applying the fibonacci function
 
 ```
 int fib(int n) {
-  if (n == 0) return 1;
+  if (n == 0) return 0;
   if (n == 1) return 1;
   return fib(n-1) + fib(n-2);
 }
 ```
 
-and want to add all results to a single result we could do this like that.
+to a list of values
 
 ```
-final vs = [10, 20, 30, 40];
-print(vs.map((n) => fib(n)).reduce((a, b) => a + b));
+final vs = [40, 41, 42, 43, 44, 45];
 ```
 
-The most time intensive part of this operation would be to apply four times the
-fibonacci function. And although map is per se perfectly parallizable in the shown case
-Dart would not execute it in parallel due to the fact that every Dart program runs in a single
-isolate (even if a Dart program runs on a processor being capable to process
-several threads in parallel).
-
-This 
-
+you can do this like that.
 
 ```
-  print("fib of $vs using classical map");
-  stopwatch.start();
-  print(vs.map(fibStr).join("\n"));
-  stopwatch.stop();
-  print("Elapsed time: ${stopwatch.elapsed}");
-``
+// We have to define a wannabe function
+class FibFunc() {
+  int call(int n) => fib(n);
+}
+
+void main() {
+  final vs = [40, 41, 42, 43, 44, 45];
+  final sum = parallel(vs).map(new FibFunc())
+                          .reduce((a, b) => a + b)
+                          .then((result) => print(result));  
+}
+```
