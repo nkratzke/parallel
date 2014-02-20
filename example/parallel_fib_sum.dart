@@ -10,7 +10,7 @@ class FibFunc {
 
 main() {
   final vs = [40, 41, 42, 43, 44, 45];
-  final sum = parallel(vs).map(new FibFunc())
+  final sum = parallel(vs).pmap(new FibFunc())
                           .reduce((a, b) => a + b)
                           .then((result) => print(result));
 }

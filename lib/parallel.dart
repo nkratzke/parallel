@@ -30,7 +30,7 @@ class _MessageableFunction extends Task {
 class PIterable implements Iterable {
 
   // Wrapped future of an iterable
-  final Future<Iterable> _futureIterable;
+  Future<Iterable> _futureIterable;
 
   /**
    * Constructor to create a collection providing
@@ -40,8 +40,9 @@ class PIterable implements Iterable {
 
   /**
    * Parallel map. [f] has to be a wannabe function.
+   * Keeps parallel processing possible in next step possible.
    */
-  PIterable map(Function f) {
+  PIterable pmap(Function f) {
     final worker = new Worker();
     final c = new Completer<Iterable>();
     final computations = [];
@@ -59,7 +60,11 @@ class PIterable implements Iterable {
   }
 
   /**
-   * Applies a function [f] to a completed result.
+   * Applies a function [f] to a completed result
+   * to inspect a step in a parallel processing chain.
+   * [inspect] does not change anything in the
+   * parallel processing chain.
+   * Keeps parallel processing possible in next step.
    */
   PIterable inspect(void f(dynamic)) {
     final c = new Completer<Iterable>();
@@ -71,14 +76,25 @@ class PIterable implements Iterable {
   }
 
   /**
+   * Applies a function [f] to a completed result
+   * to finish a parallel processing chain.
+   */
+  Future<dynamic> then(Function f) {
+    final c = new Completer();
+    this._futureIterable.then((completed) => c.complete(f(completed)));
+    return c.future;
+  }
+
+  /**
    * Delegates all methods of [Iterable] to the wrapped
    * iterable. Returns a Future of the result returned by
    * the wrapped [Iterable].
+   * Finishes a parallel processing chain.
    */
-  dynamic noSuchMethod(Invocation msg) {
+  Future<dynamic> noSuchMethod(Invocation msg) {
     final c = new Completer();
     this._futureIterable.then((completed) {
-      final result = reflect(completed).delegate(msg);
+      var result = reflect(completed).delegate(msg);
       c.complete(result);
     });
     return c.future;

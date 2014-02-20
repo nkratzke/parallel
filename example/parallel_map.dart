@@ -16,9 +16,14 @@ int fib(int n) {
  */
 class FibFunc { int call(int n) => fib(n); }
 
+class DoubleFunc { int call(int n) => 2 * n; }
+
+class SquareFunc { int call(int n) => n * n; }
+
+
 void main() {
   final stopwatch = new Stopwatch();
-  final vs = [40, 41, 42, 43, 44, 45];
+  final vs = new Iterable.generate(45, (i) => i + 1);
 
   print("sum of fib on $vs using classical map");
   stopwatch.start();
@@ -28,9 +33,11 @@ void main() {
 
   print("sum of fib on $vs using parallel map");
   stopwatch..reset()..start();
-  parallel(vs).map(new FibFunc()).reduce((a, b) => a + b).then((r) {
-    print(r);
-    stopwatch.stop();
-    print("Elapsed time: ${stopwatch.elapsed}");
-  });
+  parallel(vs).pmap(new FibFunc())
+              .reduce((a, b) => a + b)
+              .then((r) {
+                print(r);
+                stopwatch.stop();
+                print("Elapsed time: ${stopwatch.elapsed}");
+              });
 }
